@@ -18,11 +18,11 @@ if (args[0] === "test") {
       test(
         buildCard,
         [
-          "EEC965",
+          "#EEC965",
           "./src/assets/test/hyunjin.png",
           args[3] || "HyunJin",
-          1,
-          { noUpload: true, toFile: false },
+          Date.now(),
+          { noUpload: true, toFile: true },
         ],
         rounds,
         "Draw"

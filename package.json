@@ -23,7 +23,8 @@
   "scripts": {
     "b": "tsc && yarn node --trace-warnings ./dist/index.js",
     "r": "yarn node --trace-warnings ./dist/index.js",
-    "t": "mocha -r ts-node/register tests/**.test.ts"
+    "t": "mocha -r ts-node/register tests/**.test.ts",
+    "p": "rm ./out/*"
   },
   "license": "MIT"
 }
