@@ -133,5 +133,5 @@ if (args[0] === "test") {
     });
   });
 
-  app.listen(3001, () => console.log("Listening!"));
+  app.listen(process.env.PORT || 3000, () => console.log("Listening!"));
 }
