@@ -9,6 +9,13 @@ import sharp from "sharp";
 import { S3 } from "./lib/space/S3";
 import { reverseHash } from "./lib/hash";
 
+if (
+  !process.env.S3_ENDPOINT ||
+  !process.env.S3_ACCESS_KEY ||
+  !process.env.S3_SECRET_KEY
+)
+  throw new Error("Missing S3 credentials");
+
 const args = process.argv.slice(2).map((a) => a.toLowerCase());
 
 if (args[0] === "test") {

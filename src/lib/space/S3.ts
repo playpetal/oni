@@ -1,9 +1,9 @@
 import AWS from "aws-sdk";
 
 export const S3 = new AWS.S3({
-  endpoint: "nyc3.digitaloceanspaces.com",
+  endpoint: process.env.S3_ENDPOINT!,
   credentials: {
-    accessKeyId: "PYANQLRGPEY2ITBBB4N3",
-    secretAccessKey: "c7ZqRQHx5mk+4d9qrxFukgcw96AVioQVEz+AELtR20o",
+    accessKeyId: process.env.S3_ACCESS_KEY!,
+    secretAccessKey: process.env.S3_SECRET_KEY!,
   },
 });
