@@ -6,6 +6,8 @@ import imageType from "image-type";
 import { isUrl } from "./lib/isUrl";
 import axios from "axios";
 import sharp from "sharp";
+import { S3 } from "./lib/space/S3";
+import { reverseHash } from "./lib/hash";
 
 const args = process.argv.slice(2).map((a) => a.toLowerCase());
 
@@ -107,5 +109,29 @@ if (args[0] === "test") {
     }
   });
 
-  app.listen(3000, () => console.log("Listening!"));
+  app.post("/upload", async (req, res) => {
+    if (!req.body?.url || !req.body?.id)
+      return res.status(400).send({ error: "invalid body" });
+
+    const key = reverseHash(req.body.id as number);
+
+    const image = (
+      await axios.get(req.body.url!, { responseType: "arraybuffer" })
+    ).data;
+
+    const params: AWS.S3.PutObjectRequest = {
+      Bucket: "petal",
+      Key: `p/${key}.png`,
+      Body: image,
+      ContentType: "image/png",
+      ACL: "public-read",
+    };
+
+    S3.upload(params, (err, data) => {
+      if (err) return res.status(400).send({ error: err.message });
+      return res.status(200).send({ url: data.Location });
+    });
+  });
+
+  app.listen(3001, () => console.log("Listening!"));
 }
