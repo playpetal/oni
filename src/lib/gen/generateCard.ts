@@ -3,8 +3,41 @@ import sharp from "sharp";
 export function generateCard(
   frame: Buffer | string, // buffer or HEX
   character: Buffer | string, // buffer or FILEPATH
-  name: string
+  name: string,
+  { left, top }: { left?: number; top?: number }
 ): sharp.Sharp {
+  const base = sharp({
+    create: {
+      background: { r: 0, g: 0, b: 0, alpha: 1 },
+      height: 960,
+      width: 630,
+      channels: 4,
+    },
+  });
+
+  const l = left || 0;
+  const t = top || 0;
+
+  base.composite([
+    {
+      input: "./src/assets/clip_mask.png",
+      left: 0,
+      top: 0,
+      tile: true,
+    },
+    ...generateLayers(frame, name, character, l, t),
+  ]);
+
+  return base;
+}
+
+export function generateLayers(
+  _frame: string | Buffer,
+  name: string,
+  character: string | Buffer,
+  l: number,
+  t: number
+): sharp.OverlayOptions[] {
   const [defaultFontSize, defaultTextHeight] = [104, 75];
   const charsPerLine = 7; // name length at which to shrink and re-center the text
   let fontSize = defaultFontSize; // final font size of the text, 104 is the default
@@ -22,9 +55,10 @@ export function generateCard(
     offset = (defaultTextHeight - newTextHeight) / 2;
 
     /*const strokeRatio = stroke / defaultFontSize;
-    stroke = strokeRatio * fontSize;*/
+      stroke = strokeRatio * fontSize;*/
   }
 
+  //@ts-ignore
   const text = Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 630 960" version="1.1">
         <text 
@@ -39,45 +73,27 @@ export function generateCard(
     </svg>`
   );
 
-  let frameInput: { create: sharp.Create } | Buffer;
-
-  if (typeof frame === "string") {
-    frameInput = {
-      create: { background: `${frame}`, height: 960, width: 630, channels: 4 },
-    };
-  } else frameInput = frame;
-
-  const clipMask = sharp("./src/assets/clip_mask.png");
-
-  clipMask.composite([
-    {
-      input: frameInput,
-      left: 0,
-      top: 0,
-      blend: "in",
-    },
-    { input: text, left: 0, top: 0 },
-    { input: "./src/assets/top_shadow.png", left: 0, top: 0 },
+  return [
+    { input: text, left: l, top: t },
+    { input: "./src/assets/top_shadow.png", left: l, top: t },
     {
       input: "./src/assets/outline.png",
-      left: 0,
-      top: 0,
+      left: l,
+      top: t,
       blend: "dest-over",
     },
     {
       input: "./src/assets/drop_shadow.png",
-      left: 0,
-      top: 0,
+      left: l,
+      top: t,
       blend: "dest-over",
     },
     {
       input: character,
-      left: 68,
-      top: 68,
+      left: l + 68,
+      top: t + 68,
       blend: "dest-over",
       gravity: "northwest",
     },
-  ]);
-
-  return clipMask;
+  ];
 }

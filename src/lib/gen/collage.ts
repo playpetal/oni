@@ -1,6 +1,14 @@
 import sharp from "sharp";
+import { generateLayers } from "./generateCard";
 
-export async function generateCollage(cards: sharp.Sharp[]) {
+export async function generateCollage(
+  cards: {
+    frame: string;
+    character: Buffer;
+    name: string;
+    id: number;
+  }[]
+) {
   const maxRows = 2;
   const maxColumns = 10;
 
@@ -28,7 +36,27 @@ export async function generateCollage(cards: sharp.Sharp[]) {
     },
   });
 
-  const compositions: sharp.OverlayOptions[] = [];
+  const layers: sharp.OverlayOptions[] = [
+    {
+      input: "./src/assets/clip_mask.png",
+      left: 0,
+      top: 0,
+      tile: true,
+    },
+  ];
+
+  const cardLayers: sharp.OverlayOptions[] = [];
+
+  const framesCollage = sharp({
+    create: {
+      width: columns * w,
+      height: rows * h,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  });
+
+  const frames: sharp.OverlayOptions[] = [];
 
   for (let card of generatedCards) {
     const row = Math.ceil((generatedCards.indexOf(card) + 1) / columns);
@@ -42,12 +70,27 @@ export async function generateCollage(cards: sharp.Sharp[]) {
 
     if (generatedCards.length <= 4) column = generatedCards.indexOf(card) + 1;
 
-    const buf = await card.toBuffer();
+    let frame = {
+      create: {
+        background: `${card.frame}`,
+        height: 960,
+        width: 630,
+        channels: 4 as const,
+      },
+    };
 
-    compositions.push({ input: buf, left: column * w - w, top: row * h - h });
+    frames.push({ input: frame, left: column * w - w, top: row * h - h });
+
+    const _cardLayers = generateLayers(
+      card.frame,
+      card.name,
+      card.character,
+      column * w - w,
+      row * h - h
+    );
+
+    cardLayers.push(..._cardLayers);
   }
-
-  collage.composite(compositions).png();
 
   /*********************************************************
    * sharp is pretty dumb and can't do this.               *
@@ -57,5 +100,11 @@ export async function generateCollage(cards: sharp.Sharp[]) {
    * }                                                     *
    *********************************************************/
 
-  return collage;
+  const framesBuffer = await framesCollage.composite(frames).jpeg().toBuffer();
+
+  layers.push({ input: framesBuffer, left: 0, top: 0, blend: "in" });
+
+  collage.composite([...layers, ...cardLayers]);
+
+  return collage.png();
 }

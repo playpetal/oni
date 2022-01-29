@@ -111,7 +111,7 @@ if (args[0] === "test") {
     }
 
     try {
-      const instance = generateCard(frame, character, card.name);
+      const instance = generateCard(frame, character, card.name, {});
 
       const key = hash(card.id);
       const url = await upload(
@@ -177,7 +177,12 @@ if (args[0] === "test") {
         });
     }
 
-    const sharps: sharp.Sharp[] = [];
+    const mapped: {
+      frame: string;
+      character: Buffer;
+      name: string;
+      id: number;
+    }[] = [];
 
     for (let card of cards) {
       const inputRequest = await axios.get(card.character, {
@@ -185,10 +190,15 @@ if (args[0] === "test") {
       });
       const inputBuffer = Buffer.from(inputRequest.data, "binary");
 
-      sharps.push(generateCard(card.frame, inputBuffer, card.name));
+      mapped.push({
+        frame: card.frame,
+        character: inputBuffer,
+        name: card.name,
+        id: card.id,
+      });
     }
 
-    const collage = await generateCollage(sharps);
+    const collage = await generateCollage(mapped);
     const key = hash(Date.now());
 
     const url = await upload(
