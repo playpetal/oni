@@ -218,8 +218,6 @@ if (args[0] === "test") {
         .status(400)
         .json({ hash: null, error: "'id' must be a number above 0." });
 
-    console.log(req.body.id);
-
     return res
       .status(200)
       .json({ hash: reverseHash(req.body.id), error: null });
