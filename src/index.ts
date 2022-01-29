@@ -114,7 +114,10 @@ if (args[0] === "test") {
       const instance = generateCard(frame, character, card.name);
 
       const key = hash(card.id);
-      const url = await upload(instance, `card/${key}.png`);
+      const url = await upload(
+        instance,
+        `${process.env.BUCKET_PREFIX || ""}card/${key}.png`
+      );
 
       return res.send({ url, error: null });
     } catch (e) {
@@ -137,7 +140,7 @@ if (args[0] === "test") {
 
     const params: AWS.S3.PutObjectRequest = {
       Bucket: "petal",
-      Key: `p/${key}.png`,
+      Key: `${process.env.BUCKET_PREFIX || ""}p/${key}.png`,
       Body: image,
       ContentType: "image/png",
       ACL: "public-read",
@@ -188,9 +191,38 @@ if (args[0] === "test") {
     const collage = await generateCollage(sharps);
     const key = hash(Date.now());
 
-    const url = await upload(collage, `c/${key}.png`);
+    const url = await upload(
+      collage,
+      `${process.env.BUCKET_PREFIX || ""}c/${key}.png`
+    );
 
     return res.status(200).json({ url, error: null });
+  });
+
+  app.get("/hash", (req, res) => {
+    if (
+      !req.headers.authorization ||
+      req.headers.authorization !== process.env.SHARED_SECRET
+    )
+      return res
+        .status(401)
+        .json({ hash: null, error: "You are not authorized to do that." });
+
+    if (
+      !req.body.id ||
+      typeof req.body.id !== "number" ||
+      isNaN(req.body.id) ||
+      req.body.id < 1
+    )
+      return res
+        .status(400)
+        .json({ hash: null, error: "'id' must be a number above 0." });
+
+    console.log(req.body.id);
+
+    return res
+      .status(200)
+      .json({ hash: reverseHash(req.body.id), error: null });
   });
 
   app.listen(process.env.PORT || 3000, () => console.log("Listening!"));
