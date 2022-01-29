@@ -1,5 +1,4 @@
 require("dotenv").config();
-import { buildCard } from "./lib/buildCard";
 import { test } from "./lib/test/test";
 import express from "express";
 import imageType from "image-type";
@@ -7,7 +6,11 @@ import { isUrl } from "./lib/isUrl";
 import axios from "axios";
 import sharp from "sharp";
 import { S3 } from "./lib/space/S3";
-import { reverseHash } from "./lib/hash";
+import { hash, reverseHash } from "./lib/hash";
+import { validateCardJSON } from "./lib/validate";
+import { generateCard } from "./lib/gen/generateCard";
+import { generateCollage } from "./lib/gen/collage";
+import { upload } from "./lib/space/upload";
 
 if (
   !process.env.S3_ENDPOINT ||
@@ -25,14 +28,8 @@ if (args[0] === "test") {
   switch (args[1]) {
     case "draw": {
       test(
-        buildCard,
-        [
-          "#EEC965",
-          "./src/assets/test/hyunjin.png",
-          args[3] || "HyunJin",
-          Date.now(),
-          { noUpload: true, toFile: true },
-        ],
+        generateCard,
+        ["#EEC965", "./src/assets/test/hyunjin.png", args[3] || "HyunJin"],
         rounds,
         "Draw"
       );
@@ -52,67 +49,79 @@ if (args[0] === "test") {
   });
 
   app.get("/card", async (req, res) => {
-    const {
-      image,
-      input,
-      id,
-      name,
-    }: { image: string; id: number; input: string; name: string } = req.body;
+    const card = req.body as {
+      frame: string;
+      character: string;
+      name: string;
+      id: number;
+    };
 
-    if (!image || !isUrl(image))
+    const isValid = validateCardJSON(card);
+
+    if (!isValid)
       return res
         .status(400)
-        .send({ error: "'image' must be a url", image: null });
+        .json({ error: "'body' must be a valid card object", url: null });
 
-    if (!input || (!isUrl(input) && !/^#[0-9A-F]{6}$/i.test(input)))
+    if (!isUrl(card.character))
+      return res
+        .status(400)
+        .send({ error: "'character' must be a url", url: null });
+
+    if (!isUrl(card.frame) && !/^#[0-9A-F]{6}$/i.test(card.frame))
       return res.status(400).send({
         error: "'input' must be a hex code or url",
-        image: null,
+        url: null,
       });
 
-    if (!id || isNaN(id) || typeof id !== "number" || id < 0)
+    if (isNaN(card.id) || typeof card.id !== "number" || card.id < 0)
       return res
         .status(400)
-        .send({ error: "'id' must be a valid number above zero", image: null });
+        .send({ error: "'id' must be a valid number above zero", url: null });
 
-    const imageRequest = await axios.get(image, {
+    const characterReq = await axios.get(card.character, {
       responseType: "arraybuffer",
     });
-    const imageBuffer = Buffer.from(imageRequest.data, "binary");
-    const imageBufferType = imageType(imageBuffer);
+    const characterBuf = Buffer.from(characterReq.data, "binary");
+    const characterType = imageType(characterBuf);
 
-    if (imageBufferType?.ext !== "png" && imageBufferType?.ext !== "jpg")
-      return res
-        .status(400)
-        .send({ error: "'image' must be a url to a valid .png or .jpeg" });
+    if (characterType?.ext !== "png" && characterType?.ext !== "jpg")
+      return res.status(400).send({
+        error: "'image' must be a url to a valid .png or .jpeg",
+        url: null,
+      });
 
-    const fixedImage = await sharp(imageBuffer).resize(494, 710).toBuffer();
+    const character = await sharp(characterBuf).resize(494, 710).toBuffer();
+    let frame: Buffer | string = card.frame;
 
-    let fixedInput: Buffer | string = input;
-
-    if (isUrl(input)) {
-      const inputRequest = await axios.get(input, {
+    if (isUrl(card.frame)) {
+      const frameReq = await axios.get(card.frame, {
         responseType: "arraybuffer",
       });
-      const inputBuffer = Buffer.from(inputRequest.data, "binary");
-      const inputBufferType = imageType(inputBuffer);
+      const frameBuf = Buffer.from(frameReq.data, "binary");
+      const frameType = imageType(frameBuf);
 
-      if (inputBufferType?.ext !== "png" && inputBufferType?.ext !== "jpg")
-        return res
-          .status(400)
-          .send({ error: "'input' must be a url to a valid .png or .jpeg" });
+      if (frameType?.ext !== "png" && frameType?.ext !== "jpg")
+        return res.status(400).send({
+          error: "'input' must be a url to a valid .png or .jpeg",
+          url: null,
+        });
 
-      fixedInput = await sharp(inputBuffer).resize(630, 960).toBuffer();
+      frame = await sharp(frameBuf).resize(630, 960).toBuffer();
     }
 
     try {
-      const url = await buildCard(fixedInput, fixedImage, name || "", id);
-      return res.send({ error: null, image: url });
+      const instance = generateCard(frame, character, card.name);
+
+      const key = hash(card.id);
+      const url = await upload(instance, `card/${key}.png`);
+
+      return res.send({ url, error: null });
     } catch (e) {
       console.log(e);
       return res
         .status(500)
-        .send({ error: "An unexpected error occurred.", image: null });
+        .send({ error: "An unexpected error occurred.", url: null });
     }
   });
 
@@ -138,6 +147,50 @@ if (args[0] === "test") {
       if (err) return res.status(400).send({ error: err.message });
       return res.status(200).send({ url: data.Location });
     });
+  });
+
+  app.get("/collage", async (req, res) => {
+    const cards = req.body as {
+      frame: string;
+      character: string;
+      name: string;
+      id: number;
+    }[];
+
+    if (!Array.isArray(cards))
+      return res
+        .status(400)
+        .json({ url: null, error: "'body' must be an array of cards" });
+
+    for (let card of cards) {
+      const isValid = validateCardJSON(card);
+
+      if (!isValid)
+        return res.status(400).json({
+          url: null,
+          error: `entry ${cards.indexOf(
+            card
+          )} of 'body' has invalid properties`,
+        });
+    }
+
+    const sharps: sharp.Sharp[] = [];
+
+    for (let card of cards) {
+      const inputRequest = await axios.get(card.character, {
+        responseType: "arraybuffer",
+      });
+      const inputBuffer = Buffer.from(inputRequest.data, "binary");
+
+      sharps.push(generateCard(card.frame, inputBuffer, card.name));
+    }
+
+    const collage = await generateCollage(sharps);
+    const key = hash(Date.now());
+
+    const url = await upload(collage, `c/${key}.png`);
+
+    return res.status(200).json({ url, error: null });
   });
 
   app.listen(process.env.PORT || 3000, () => console.log("Listening!"));

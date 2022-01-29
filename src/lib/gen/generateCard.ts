@@ -1,15 +1,10 @@
 import sharp from "sharp";
-import { Stream } from "stream";
-import { S3 } from "./space/S3";
-import { hash } from "./hash";
 
-export async function buildCard(
+export function generateCard(
   frame: Buffer | string, // buffer or HEX
   character: Buffer | string, // buffer or FILEPATH
-  name: string,
-  id: number,
-  options?: { noUpload?: boolean; toFile?: boolean }
-): Promise<string | undefined> {
+  name: string
+): sharp.Sharp {
   const [defaultFontSize, defaultTextHeight] = [104, 75];
   const charsPerLine = 7; // name length at which to shrink and re-center the text
   let fontSize = defaultFontSize; // final font size of the text, 104 is the default
@@ -84,39 +79,5 @@ export async function buildCard(
     },
   ]);
 
-  const key = hash(id);
-
-  if (options?.toFile) {
-    await clipMask.toFile(`./out/${key}.png`);
-  }
-
-  if (options?.noUpload) return;
-
-  await new Promise(async (res, rej) =>
-    clipMask
-      .pipe(await upload(key))
-      .once("end", () => res(undefined))
-      .on("error", (e) => rej(e))
-  );
-
-  return `https://cdn.playpetal.com/mockcard/${key}.png`;
-}
-
-async function upload(key: string) {
-  const pass = new Stream.PassThrough();
-
-  const params: AWS.S3.PutObjectRequest = {
-    Bucket: "petal",
-    Key: `mockcard/${key}.png`,
-    Body: pass,
-    ContentType: "image/png",
-    ACL: "public-read",
-  };
-
-  S3.upload(params, (err: any, data: any) => {
-    if (err) throw err;
-    return data.location;
-  });
-
-  return pass;
+  return clipMask;
 }
