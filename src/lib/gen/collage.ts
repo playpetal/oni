@@ -24,7 +24,7 @@ export async function generateCollage(cards: sharp.Sharp[]) {
       width: columns * w,
       height: rows * h,
       channels: 4,
-      background: { r: 255, g: 255, b: 255, alpha: 1 },
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
     },
   });
 
@@ -41,8 +41,6 @@ export async function generateCollage(cards: sharp.Sharp[]) {
       2;
 
     if (generatedCards.length <= 4) column = generatedCards.indexOf(card) + 1;
-
-    console.log(row, column);
 
     const buf = await card.toBuffer();
 
