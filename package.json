@@ -23,6 +23,8 @@
   },
   "scripts": {
     "dev": "nodemon src/index.ts",
+    "build": "rimraf dist && yarn tsc",
+    "pm2": "NODE_ENV=production pm2 start dist/index.js --watch",
     "b": "tsc && yarn node --trace-warnings ./dist/index.js",
     "r": "yarn node --trace-warnings ./dist/index.js",
     "t": "mocha -r ts-node/register tests/**.test.ts",
