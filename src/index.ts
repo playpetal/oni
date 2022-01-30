@@ -19,6 +19,7 @@ if (
 )
   throw new Error("Missing S3 credentials");
 
+sharp.concurrency(1);
 const args = process.argv.slice(2).map((a) => a.toLowerCase());
 
 if (args[0] === "test") {
@@ -193,6 +194,7 @@ if (args[0] === "test") {
     console.time("collage");
     const collage = await generateCollage(mapped);
     console.timeEnd("collage");
+    collage;
 
     const buffer = await collage.toBuffer();
     res.status(200).json({

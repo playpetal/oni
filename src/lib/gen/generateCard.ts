@@ -74,7 +74,7 @@ export function generateLayers(
   );
 
   return [
-    { input: text, left: l, top: t },
+    /*{ input: text, left: l, top: t },
     { input: "./src/assets/top_shadow.png", left: l, top: t },
     {
       input: "./src/assets/outline.png",
@@ -87,7 +87,7 @@ export function generateLayers(
       left: l,
       top: t,
       blend: "dest-over",
-    },
+    },*/
     {
       input: character,
       left: l + 68,
