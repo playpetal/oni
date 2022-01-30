@@ -1,33 +1,88 @@
+import {
+  CompleteMultipartUploadCommand,
+  CompleteMultipartUploadCommandInput,
+  CreateMultipartUploadCommand,
+  CreateMultipartUploadCommandInput,
+  ListPartsCommand,
+  ListPartsCommandInput,
+  PutObjectCommand,
+  PutObjectCommandInput,
+  UploadPartCommand,
+  UploadPartCommandInput,
+} from "@aws-sdk/client-s3";
 import sharp from "sharp";
-import { Stream } from "stream";
 import { S3 } from "./S3";
 
-export async function upload(instance: sharp.Sharp, key: string) {
-  const url: string = await new Promise(async (res, rej) => {
-    instance
-      .pipe(await passthrough(key))
-      .once("end", () => res(`https://cdn.playpetal.com/${key}`))
-      .on("error", (e) => rej(e));
-  });
+export async function upload(body: sharp.Sharp | Buffer, key: string) {
+  if (!Buffer.isBuffer(body)) {
+    body = await body.toBuffer();
+  }
 
-  return url;
-}
-
-async function passthrough(key: string) {
-  const pass = new Stream.PassThrough();
-
-  const params: AWS.S3.PutObjectRequest = {
+  const params: PutObjectCommandInput = {
     Bucket: "petal",
     Key: key,
-    Body: pass,
+    ContentType: "image/png",
+    ACL: "public-read",
+    Body: body,
+  };
+
+  const cmd = new PutObjectCommand(params);
+  await S3.send(cmd);
+
+  return `https://cdn.playpetal.com/${key}`;
+}
+
+export async function uploadMultipart(instance: sharp.Sharp, key: string) {
+  const params: CreateMultipartUploadCommandInput = {
+    Bucket: "petal",
+    Key: key,
     ContentType: "image/png",
     ACL: "public-read",
   };
+  const upload = new CreateMultipartUploadCommand(params);
+  const response = await S3.send(upload);
 
-  S3.upload(params, (err: any, data: any) => {
-    if (err) throw err;
-    return data.location;
+  let part = 0;
+
+  instance.on("readable", async () => {
+    let chunk = instance.read();
+    while (chunk != null) {
+      const currentPart = ++part;
+
+      const uploadParams: UploadPartCommandInput = {
+        Bucket: "petal",
+        Key: key,
+        PartNumber: currentPart,
+        UploadId: response.UploadId!,
+        Body: chunk,
+        ContentLength: chunk.length,
+      };
+
+      const upload = new UploadPartCommand(uploadParams);
+      await S3.send(upload);
+    }
   });
 
-  return pass;
+  instance.on("end", async () => {
+    const partsParams: ListPartsCommandInput = {
+      Bucket: "petal",
+      Key: key,
+      UploadId: response.UploadId!,
+    };
+
+    const partsCommand = new ListPartsCommand(partsParams);
+    const parts = await S3.send(partsCommand);
+
+    const completeParams: CompleteMultipartUploadCommandInput = {
+      Bucket: "petal",
+      Key: key,
+      UploadId: response.UploadId,
+      MultipartUpload: parts,
+    };
+
+    const complete = new CompleteMultipartUploadCommand(completeParams);
+    await S3.send(complete);
+  });
+
+  return `https://cdn.playpetal.com/${key}`;
 }

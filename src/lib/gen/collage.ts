@@ -73,8 +73,8 @@ export async function generateCollage(
     let frame = {
       create: {
         background: `${card.frame}`,
-        height: 960,
-        width: 630,
+        height: h,
+        width: w,
         channels: 4 as const,
       },
     };
@@ -92,19 +92,14 @@ export async function generateCollage(
     cardLayers.push(..._cardLayers);
   }
 
-  /*********************************************************
-   * sharp is pretty dumb and can't do this.               *
-   * we'll have to figure something out later.             *
-   * if (generatedCards.length > 4) {                      *
-   *     collage.resize((w / 2) * columns, (h / 2) * rows);*
-   * }                                                     *
-   *********************************************************/
-
   const framesBuffer = await framesCollage.composite(frames).jpeg().toBuffer();
 
   layers.push({ input: framesBuffer, left: 0, top: 0, blend: "in" });
 
   collage.composite([...layers, ...cardLayers]);
 
-  return collage.png();
+  if (generatedCards.length <= 4) return collage.png();
+
+  const collageBuffer = await collage.png().toBuffer();
+  return sharp(collageBuffer).resize((w * columns) / 2, (h * rows) / 2);
 }

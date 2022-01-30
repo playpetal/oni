@@ -5,12 +5,12 @@ import imageType from "image-type";
 import { isUrl } from "./lib/isUrl";
 import axios from "axios";
 import sharp from "sharp";
-import { S3 } from "./lib/space/S3";
 import { hash, reverseHash } from "./lib/hash";
 import { validateCardJSON } from "./lib/validate";
 import { generateCard } from "./lib/gen/generateCard";
 import { generateCollage } from "./lib/gen/collage";
 import { upload } from "./lib/space/upload";
+import { requestCharacterFile } from "./lib/cache";
 
 if (
   !process.env.S3_ENDPOINT ||
@@ -138,17 +138,10 @@ if (args[0] === "test") {
       await axios.get(req.body.url!, { responseType: "arraybuffer" })
     ).data;
 
-    const params: AWS.S3.PutObjectRequest = {
-      Bucket: "petal",
-      Key: `${process.env.BUCKET_PREFIX || ""}p/${key}.png`,
-      Body: image,
-      ContentType: "image/png",
-      ACL: "public-read",
-    };
+    await upload(image, `${process.env.BUCKET_PREFIX || ""}p/${key}.png`);
 
-    S3.upload(params, (err, data) => {
-      if (err) return res.status(400).send({ error: err.message });
-      return res.status(200).send({ url: data.Location });
+    return res.status(200).send({
+      url: `https://cdn.playpetal.com/${process.env.BUCKET_PREFIX}p/${key}.png`,
     });
   });
 
@@ -184,29 +177,27 @@ if (args[0] === "test") {
       id: number;
     }[] = [];
 
+    console.time("request");
     for (let card of cards) {
-      const inputRequest = await axios.get(card.character, {
-        responseType: "arraybuffer",
-      });
-      const inputBuffer = Buffer.from(inputRequest.data, "binary");
+      const character = await requestCharacterFile(card.character);
 
       mapped.push({
         frame: card.frame,
-        character: inputBuffer,
+        character: character,
         name: card.name,
         id: card.id,
       });
     }
+    console.timeEnd("request");
 
+    console.time("collage");
     const collage = await generateCollage(mapped);
-    const key = hash(Date.now());
+    console.timeEnd("collage");
 
-    const url = await upload(
-      collage,
-      `${process.env.BUCKET_PREFIX || ""}c/${key}.png`
-    );
-
-    return res.status(200).json({ url, error: null });
+    const buffer = await collage.toBuffer();
+    res.status(200).json({
+      url: `data:image/png;base64,${buffer.toString("base64")}`,
+    });
   });
 
   app.get("/hash", (req, res) => {
