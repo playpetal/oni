@@ -20,6 +20,8 @@ if (
   throw new Error("Missing S3 credentials");
 
 sharp.concurrency(1);
+sharp.cache(false);
+
 const args = process.argv.slice(2).map((a) => a.toLowerCase());
 
 if (args[0] === "test") {
