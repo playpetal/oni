@@ -75,6 +75,8 @@ RUN cd /tmp/ffmpeg-${FFMPEG_VERSION} && \
 
 WORKDIR /oni
 
+RUN mkdir ./cache
+
 COPY package*.json ./
 COPY yarn.lock ./
 RUN yarn install --immutable --immutable-cache --check-cache
