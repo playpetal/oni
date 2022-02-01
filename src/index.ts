@@ -85,7 +85,9 @@ if (args[0] === "test") {
     await upload(image, `${process.env.BUCKET_PREFIX || ""}p/${key}.png`);
 
     return res.status(200).send({
-      url: `https://cdn.playpetal.com/${process.env.BUCKET_PREFIX}p/${key}.png`,
+      url: `https://cdn.playpetal.com/${
+        process.env.BUCKET_PREFIX || ""
+      }p/${key}.png`,
     });
   });
 
