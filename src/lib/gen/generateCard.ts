@@ -38,6 +38,7 @@ export async function generateCard(
         pass,
         inputs.length - 2,
         inputs.length - 1,
+        1 / Math.ceil(cards.length / 2),
         cards.length > 1
       )
     );
@@ -45,12 +46,12 @@ export async function generateCard(
     pass++;
   }
 
-  if (cards.length > 1)
+  if (cards.length > 1) {
+    const xstack = getXstackLayout(cards.length);
     filters.push(
-      `${finals.join("")}xstack=inputs=${cards.length}:layout=${getXstackLayout(
-        cards.length
-      )}`
+      `${finals.join("")}xstack=inputs=${cards.length}:layout=${xstack}`
     );
+  }
 
   const child = spawn("ffmpeg", [
     "-loglevel",
@@ -83,10 +84,32 @@ export async function generateCard(
 }
 
 function getXstackLayout(num: number) {
-  return "0_0|w0_0|w0+w1_0|w0+w1+w2_0|w0+w1+w2+w3_0|0_h0|w0_h0|w0+w1_h0|w0+w1+w2_h0|w0+w1+w2+w3_h0"
-    .split("|")
-    .slice(0, num)
-    .join("|");
+  let base = "0_0|w0_0|w0+w1_0|w0+w1+w2_0";
+
+  if (num <= 4) {
+    return base.split("|").slice(0, num).join("|");
+  }
+
+  if (num <= 6) {
+    base = base.split("|").slice(0, 3).join("|");
+    base += "|0_h0|w0_h0";
+    if (num === 6) base += "|w0+w1_h0";
+    return base;
+  }
+
+  if (num <= 8) {
+    base += "|0_h0|w0_h0|w0+w1_h0";
+    if (num === 8) base += "|w0+w1+w2_h0";
+    return base;
+  }
+
+  if (num <= 10) {
+    base += "|w0+w1+w2+w3_0|0_h0|w0_h0|w0+w1_h0|w0+w1+w2_h0";
+    if (num === 10) base += "|w0+w1+w2+w3_h0";
+    return base;
+  }
+
+  return base;
 }
 
 export function generateFilters(
@@ -94,6 +117,7 @@ export function generateFilters(
   pass: number,
   frameInput: number,
   charInput: number,
+  scaleX: number,
   appendOutput: boolean = true
 ) {
   const { fontSize, stroke, offset } = getTextSize(name);
@@ -109,7 +133,9 @@ export function generateFilters(
     }:bordercolor=black:borderw=${stroke} [card3${pass}];` +
     `[card3${pass}][2] overlay=format=auto [finalcard${pass}];` +
     `[3][finalcard${pass}] overlay=format=auto [unscaled${pass}];` +
-    `[unscaled${pass}] scale=320:-1 ${appendOutput ? `[final${pass}]` : ``}`
+    `[unscaled${pass}] scale=${630 * scaleX}:-1 ${
+      appendOutput ? `[final${pass}]` : ``
+    }`
   );
 }
 
