@@ -1,23 +1,7 @@
-import {
-  CompleteMultipartUploadCommand,
-  CompleteMultipartUploadCommandInput,
-  CreateMultipartUploadCommand,
-  CreateMultipartUploadCommandInput,
-  ListPartsCommand,
-  ListPartsCommandInput,
-  PutObjectCommand,
-  PutObjectCommandInput,
-  UploadPartCommand,
-  UploadPartCommandInput,
-} from "@aws-sdk/client-s3";
-import sharp from "sharp";
+import { PutObjectCommand, PutObjectCommandInput } from "@aws-sdk/client-s3";
 import { S3 } from "./S3";
 
-export async function upload(body: sharp.Sharp | Buffer, key: string) {
-  if (!Buffer.isBuffer(body)) {
-    body = await body.toBuffer();
-  }
-
+export async function upload(body: Buffer, key: string) {
   const params: PutObjectCommandInput = {
     Bucket: "petal",
     Key: key,
@@ -32,7 +16,7 @@ export async function upload(body: sharp.Sharp | Buffer, key: string) {
   return `https://cdn.playpetal.com/${key}`;
 }
 
-export async function uploadMultipart(instance: sharp.Sharp, key: string) {
+/*export async function uploadMultipart(instance: sharp.Sharp, key: string) {
   const params: CreateMultipartUploadCommandInput = {
     Bucket: "petal",
     Key: key,
@@ -85,4 +69,4 @@ export async function uploadMultipart(instance: sharp.Sharp, key: string) {
   });
 
   return `https://cdn.playpetal.com/${key}`;
-}
+}*/

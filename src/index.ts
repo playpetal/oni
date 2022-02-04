@@ -2,7 +2,6 @@ require("dotenv").config();
 import { test } from "./lib/test/test";
 import express from "express";
 import axios from "axios";
-import sharp from "sharp";
 import { reverseHash } from "./lib/hash";
 import { generateCard } from "./lib/gen/generateCard";
 import { upload } from "./lib/space/upload";
@@ -14,9 +13,6 @@ if (
   !process.env.S3_SECRET_KEY
 )
   throw new Error("Missing S3 credentials");
-
-sharp.concurrency(1);
-sharp.cache(false);
 
 const args = process.argv.slice(2).map((a) => a.toLowerCase());
 

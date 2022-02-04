@@ -1,4 +1,3 @@
-import sharp from "sharp";
 import { spawn } from "child_process";
 import { Writable } from "stream";
 
