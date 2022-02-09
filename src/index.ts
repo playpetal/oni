@@ -5,7 +5,9 @@ import axios from "axios";
 import { reverseHash } from "./lib/hash";
 import { generateCard } from "./lib/gen/generateCard";
 import { upload } from "./lib/space/upload";
-import { requestCharacterFile } from "./lib/cache";
+import { recache, requestCharacterFile } from "./lib/cache";
+import { writeFile } from "fs/promises";
+import path from "path";
 
 if (
   !process.env.S3_ENDPOINT ||
@@ -79,6 +81,7 @@ if (args[0] === "test") {
     ).data;
 
     await upload(image, `${process.env.BUCKET_PREFIX || ""}p/${key}.png`);
+    await recache(path.join("./cache", `${key}.png`), image);
 
     return res.status(200).send({
       url: `https://cdn.playpetal.com/${

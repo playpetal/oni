@@ -25,3 +25,16 @@ export async function requestCharacterFile(character: string): Promise<string> {
     return filepath;
   }
 }
+
+export async function recache(
+  filepath: string,
+  image: Buffer
+): Promise<string> {
+  const metadata = await sharp(image).metadata();
+  if (metadata.height !== 708 || metadata.width !== 494) {
+    image = await sharp(image).resize(494, 708).toBuffer();
+  }
+
+  await writeFile(filepath, image);
+  return filepath;
+}
