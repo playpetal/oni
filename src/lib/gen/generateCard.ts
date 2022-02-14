@@ -1,5 +1,6 @@
 import { spawn } from "child_process";
 import { Writable } from "stream";
+import { getLetter } from "../dict";
 
 export async function generateCard(
   cards: {
@@ -147,24 +148,39 @@ export function getTextSize(name: string): {
   stroke: number;
   offset: number;
 } {
-  const [defaultFontSize, defaultTextHeight] = [104, 75];
-  const charsPerLine = 7; // name length at which to shrink and re-center the text
-  let fontSize = defaultFontSize; // final font size of the text, 104 is the default
-  let offset = 0; // negative Y offset of the text
-  let stroke = 5; // stroke width of the text, 5 is the default
+  const maxWidth = 468; // max width in px of the text
+  let fontSize = 104; // final font size of the text
+  let stroke = 5; // stroke width of the text
+  let multiplier = 1;
 
-  if (name.length > charsPerLine) {
-    const em = charsPerLine / name.length; // the new font size will be 'em' em of the base font size
-    fontSize *= em; // set the new font size to 'em' em
+  let { width, offset } = calculateSize(name, 1);
 
-    // ratio of default text height(px) to default font size, always ≈0.721153846
-    const heightRatio = defaultTextHeight / defaultFontSize;
-    const newTextHeight = fontSize * heightRatio;
+  while (width > maxWidth) {
+    multiplier = Number((multiplier - 0.025).toFixed(3));
 
-    offset = (defaultTextHeight - newTextHeight) / 2;
+    const size = calculateSize(name, multiplier);
+    width = size.width;
+    offset = size.offset;
   }
 
-  if (name.toLowerCase().includes("é")) offset -= 20;
+  return { fontSize: Math.round(multiplier * fontSize), stroke, offset };
+}
 
-  return { fontSize, stroke, offset };
+function calculateSize(
+  str: string,
+  mult: number
+): { width: number; offset: number } {
+  let finalWidth = 0;
+  let finalOffset = 0;
+
+  for (let s of str) {
+    const { width, offset, leftPad, rightPad } = getLetter(s);
+    finalWidth += Number((mult * (leftPad + rightPad + width)).toFixed(3));
+
+    if (offset && finalOffset > offset)
+      finalOffset = Number((mult * offset).toFixed(3));
+  }
+
+  console.log(finalOffset);
+  return { width: Math.round(finalWidth), offset: Math.round(finalOffset) };
 }
