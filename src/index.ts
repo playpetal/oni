@@ -63,15 +63,20 @@ if (args[0] === "test") {
       id: number;
     }[] = [];
 
-    for (let card of cardData) {
-      const character = await requestFile(card.character, 708, 494, "/c");
+    try {
+      for (let card of cardData) {
+        const character = await requestFile(card.character, 708, 494, "/c");
 
-      if (card.frame.startsWith("#")) {
-        cards.push({ ...card, character });
-      } else {
-        const frame = await requestFile(card.frame, 960, 360, "/f");
-        cards.push({ ...card, character, frame });
+        if (card.frame.startsWith("#")) {
+          cards.push({ ...card, character });
+        } else {
+          const frame = await requestFile(card.frame, 960, 630, "/f");
+          cards.push({ ...card, character, frame });
+        }
       }
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ card: "" });
     }
 
     const image = await generateCard(cards);
