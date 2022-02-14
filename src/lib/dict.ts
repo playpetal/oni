@@ -22,15 +22,15 @@ function entry(
 }
 
 const dict = {
-  A: entry(73),
-  B: entry(59),
+  A: entry(73, 2, 1),
+  B: entry(59, 4, 5),
   C: entry(55),
   D: entry(59, 4, 2),
-  E: entry(55),
+  E: entry(55, 4, 4),
   F: entry(55),
   G: entry(55, 2),
-  H: entry(57),
-  I: entry(21),
+  H: entry(57, 4, 4),
+  I: entry(21, 4, 3),
   J: entry(49),
   K: entry(56),
   L: entry(41),
@@ -46,7 +46,8 @@ const dict = {
   V: entry(68),
   W: entry(95, 3),
   X: entry(55),
-  Y: entry(57),
+  Y: entry(57, 1, 1),
   Z: entry(60),
-  É: entry(55, 4, 4, -20),
+  " ": entry(24, 0, 0),
+  É: entry(55, 4, 4, -17),
 } as const;

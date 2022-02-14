@@ -163,7 +163,17 @@ export function getTextSize(name: string): {
     offset = size.offset;
   }
 
-  return { fontSize: Math.round(multiplier * fontSize), stroke, offset };
+  if (multiplier < 1) {
+    fontSize = Math.round(multiplier * fontSize);
+
+    // ratio of default text height(px) to default font size, always ≈0.721153846
+    const heightRatio = 73 / 104;
+    const newTextHeight = Math.ceil(fontSize * heightRatio);
+
+    offset += (73 - newTextHeight) / 2;
+  }
+
+  return { fontSize, stroke, offset };
 }
 
 function calculateSize(
