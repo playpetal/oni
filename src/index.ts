@@ -5,9 +5,12 @@ import axios from "axios";
 import { reverseHash } from "./lib/hash";
 import { generateCard } from "./lib/gen/generateCard";
 import { upload } from "./lib/space/upload";
-import { recache, requestCharacterFile } from "./lib/cache";
-import { writeFile } from "fs/promises";
+import { recache, requestFile } from "./lib/cache";
 import path from "path";
+import { mkdir } from "fs/promises";
+
+mkdir("./cache/c", { recursive: true });
+mkdir("./cache/f", { recursive: true });
 
 if (
   !process.env.S3_ENDPOINT ||
@@ -61,8 +64,14 @@ if (args[0] === "test") {
     }[] = [];
 
     for (let card of cardData) {
-      const character = await requestCharacterFile(card.character);
-      cards.push({ ...card, character });
+      const character = await requestFile(card.character, 708, 494, "/c");
+
+      if (card.frame.startsWith("#")) {
+        cards.push({ ...card, character });
+      } else {
+        const frame = await requestFile(card.frame, 960, 360, "/f");
+        cards.push({ ...card, character, frame });
+      }
     }
 
     const image = await generateCard(cards);
@@ -81,7 +90,7 @@ if (args[0] === "test") {
     ).data;
 
     await upload(image, `${process.env.BUCKET_PREFIX || ""}p/${key}.png`);
-    await recache(path.join("./cache", `${key}.png`), image);
+    await recache(path.join("./cache/c", `${key}.png`), image, 960, 630);
 
     return res.status(200).send({
       url: `https://cdn.playpetal.com/${

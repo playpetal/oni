@@ -29,7 +29,11 @@ export async function generateCard(
   let pass = 0;
 
   for (let card of cards) {
-    inputs.push(`-f lavfi -i color=${card.frame}:630x960`);
+    if (card.frame.startsWith("#")) {
+      inputs.push(`-f lavfi -i color=${card.frame}:630x960`);
+    } else {
+      inputs.push(`-i ${card.frame}`);
+    }
     inputs.push(`-i ${card.character}`);
     filters.push(
       generateFilters(
