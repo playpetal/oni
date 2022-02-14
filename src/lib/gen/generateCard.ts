@@ -160,5 +160,7 @@ export function getTextSize(name: string): {
     offset = (defaultTextHeight - newTextHeight) / 2;
   }
 
+  if (name.toLowerCase().includes("é")) fontSize -= 20;
+
   return { fontSize, stroke, offset };
 }
