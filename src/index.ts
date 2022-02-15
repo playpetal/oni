@@ -85,23 +85,51 @@ if (args[0] === "test") {
   });
 
   app.post("/upload", async (req, res) => {
-    if (!req.body?.url || !req.body?.id)
-      return res.status(400).send({ error: "invalid body" });
+    const { url, id, type } = req.body as {
+      url: any;
+      id: any;
+      type: any;
+    };
 
-    const key = reverseHash(req.body.id as number);
+    if (
+      typeof url !== "string" ||
+      typeof id !== "number" ||
+      typeof type !== "string"
+    ) {
+      return res.status(400).send({ error: "invalid body" });
+    }
+
+    if (type !== "prefab" && type !== "frame") {
+      return res
+        .status(400)
+        .send({ error: "'type' must be of type 'prefab' or 'frame'" });
+    }
+
+    const key = reverseHash(req.body.id);
 
     const image = (
       await axios.get(req.body.url!, { responseType: "arraybuffer" })
     ).data;
 
-    await upload(image, `${process.env.BUCKET_PREFIX || ""}p/${key}.png`);
-    await recache(path.join("./cache/c", `${key}.png`), image, 960, 630);
+    if (type === "prefab") {
+      await upload(image, `${process.env.BUCKET_PREFIX || ""}p/${key}.png`);
+      await recache(path.join("./cache/c", `${key}.png`), image, 708, 494);
 
-    return res.status(200).send({
-      url: `https://cdn.playpetal.com/${
-        process.env.BUCKET_PREFIX || ""
-      }p/${key}.png`,
-    });
+      return res.status(200).send({
+        url: `https://cdn.playpetal.com/${
+          process.env.BUCKET_PREFIX || ""
+        }p/${key}.png`,
+      });
+    } else {
+      await upload(image, `${process.env.BUCKET_PREFIX || ""}f/${key}.png`);
+      await recache(path.join("./cache/f", `${key}.png`), image, 960, 630);
+
+      return res.status(200).send({
+        url: `https://cdn.playpetal.com/${
+          process.env.BUCKET_PREFIX || ""
+        }f/${key}.png`,
+      });
+    }
   });
 
   app.get("/hash", (req, res) => {
