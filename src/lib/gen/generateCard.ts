@@ -191,6 +191,5 @@ function calculateSize(
       finalOffset = Number((mult * offset).toFixed(3));
   }
 
-  console.log(finalOffset);
   return { width: Math.round(finalWidth), offset: Math.round(finalOffset) };
 }
