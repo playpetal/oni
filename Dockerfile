@@ -33,10 +33,6 @@ RUN apk add --update \
 RUN echo http://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories && \
   apk add --update fdk-aac-dev
 
-# Get rav1e from testing.
-RUN echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories && \
-  apk add --update rav1e-dev
-
 # Get ffmpeg source.
 RUN cd /tmp/ && \
   wget http://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.gz && \
@@ -60,7 +56,6 @@ RUN cd /tmp/ffmpeg-${FFMPEG_VERSION} && \
   --enable-libass \
   --enable-libwebp \
   --enable-librtmp \
-  --enable-librav1e \
   --enable-postproc \
   --enable-libfreetype \
   --enable-openssl \
