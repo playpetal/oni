@@ -132,7 +132,10 @@ export function generateFilters(
     `[1][frame${pass}] overlay=format=auto[card${pass}];` +
     `[${charInput}] scale,format=rgba,pad=630:960:(ow-iw)/2:72:color=black@0 [char${pass}];` +
     `[char${pass}][card${pass}] overlay=format=auto[card2${pass}];` +
-    `[card2${pass}] drawtext=fontfile=./assets/Junegull.ttf:text='${name}':fontcolor=white:fontsize=${fontSize}:x=80:y=${
+    `[card2${pass}] drawtext=fontfile=./assets/Junegull.ttf:text='${name.replace(
+      /:/gm,
+      "\\:"
+    )}':fontcolor=white:fontsize=${fontSize}:x=80:y=${
       810 + offset
     }:bordercolor=black:borderw=${stroke} [card3${pass}];` +
     `[card3${pass}][2] overlay=format=auto [finalcard${pass}];` +
